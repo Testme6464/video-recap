@@ -37,8 +37,15 @@ input[type=url],input[type=text]{width:100%;border:1px solid var(--line);border-
 <div class="card">
 <h2>🔗 Video Link</h2>
 <input type="url" id="inUrl" placeholder="https://www.youtube.com/watch?v=... / TikTok / MP4 link">
-<p class="note">YouTube, TikTok, Facebook, direct MP4 — အကုန်ရ</p>
-<button class="btn btn-p" id="bGo">✨ Recap ထုတ်မယ်</button>
+<p class="note">YouTube, TikTok, Facebook, direct MP4 — အကုန်ရ (YouTube က server block ထားလို့ မရရင် file upload သုံးပါ 👇)</p>
+<button class="btn btn-p" id="bGo">✨ Recap ထုတ်မယ် (Link)</button>
+</div>
+
+<div class="card">
+<h2>📁 File Upload</h2>
+<input type="file" id="inFile" accept="video/*,audio/*,.mp4,.m4a,.mov,.mp3,.wav">
+<p class="note">YouTube video ကို downloader app နဲ့ down → ဒီမှာ upload (အမြဲရတယ် ✓)</p>
+<button class="btn btn-p" id="bGoFile">✨ Recap ထုတ်မယ် (File)</button>
 <div class="barwrap hidden" id="barW"><div class="barfill" id="bar"></div></div>
 <div class="prog" id="msg"></div>
 </div>
@@ -60,25 +67,30 @@ const $ = id => document.getElementById(id);
 // TODO: Replace with your Render backend URL after deploy
 const API = 'https://video-recap-backend.onrender.com';
 
-$('bGo').addEventListener('click', async ()=>{
-  const url = $('inUrl').value.trim();
-  if(!url){ $('msg').textContent = 'Link ထည့်ပါ'; return; }
+async function doRecap(url, file){
   $('bGo').disabled = true;
+  $('bGoFile').disabled = true;
   $('cRes').classList.add('hidden');
   $('barW').classList.remove('hidden');
   $('bar').style.width = '10%';
-  $('msg').textContent = '⏬ Video download လုပ်နေတယ်… (မိနစ်အနည်းငယ် ကြာနိုင်တယ်)';
+  $('msg').textContent = file ? '⏫ Upload လုပ်နေတယ်…' : '⏬ Video download လုပ်နေတယ်… (မိနစ်အနည်းငယ် ကြာနိုင်တယ်)';
   
-  // Fake progress
   let p = 10;
   const tick = setInterval(()=>{ p = Math.min(90, p+5); $('bar').style.width = p+'%'; }, 3000);
   
   try{
-    const r = await fetch(API + '/recap', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({url})
-    });
+    let r;
+    if(file){
+      const fd = new FormData();
+      fd.append('file', file);
+      r = await fetch(API + '/recap-file', {method: 'POST', body: fd});
+    }else{
+      r = await fetch(API + '/recap', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url})
+      });
+    }
     const data = await r.json();
     clearInterval(tick);
     $('bar').style.width = '100%';
@@ -100,8 +112,21 @@ $('bGo').addEventListener('click', async ()=>{
     $('msg').textContent = '❌ ' + (e.message || e);
   }finally{
     $('bGo').disabled = false;
+    $('bGoFile').disabled = false;
     setTimeout(()=>$('barW').classList.add('hidden'), 2000);
   }
+}
+
+$('bGo').addEventListener('click', ()=>{
+  const url = $('inUrl').value.trim();
+  if(!url){ $('msg').textContent = 'Link ထည့်ပါ'; return; }
+  doRecap(url, null);
+});
+
+$('bGoFile').addEventListener('click', ()=>{
+  const f = $('inFile').files[0];
+  if(!f){ $('msg').textContent = 'File ရွေးပါ'; return; }
+  doRecap(null, f);
 });
 </script>
 </body></html>
