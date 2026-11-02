@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6a3ec0">
+<title>Video Recap — အဓိကအချက်များ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;600;700&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f3f8;--card:#fff;--ink:#1c2530;--mut:#66727f;--acc:#6a3ec0;--acc-d:#532e9e;--line:#e3e8ed}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Myanmar","Padauk",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding:14px 14px 60px}
+h1{font-size:22px;margin:6px 0 2px}
+.sub{color:var(--mut);font-size:13px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.card h2{font-size:16px;margin:0 0 10px}
+input[type=url],input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;font-family:inherit}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:13px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin:8px 0}
+.btn-p{background:var(--acc);color:#fff}
+.btn-p:active{background:var(--acc-d)}
+.btn:disabled{opacity:.5}
+.prog{font-size:13px;color:var(--mut);min-height:20px;white-space:pre-wrap}
+.barwrap{background:#e8e4f2;border-radius:8px;height:10px;overflow:hidden;margin:6px 0}
+.barfill{background:var(--acc);height:100%;width:0%;transition:width .3s}
+.bullets{background:#f9f7ff;border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0}
+.bullets li{margin:6px 0}
+.note{font-size:12px;color:var(--mut)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🎬 Video Recap</h1>
+<p class="sub">Video link → အဓိကအချက်များ (auto) <span class="note" id="verTag">· v1</span></p>
+
+<div class="card">
+<h2>🔗 Video Link</h2>
+<input type="url" id="inUrl" placeholder="https://www.youtube.com/watch?v=... / TikTok / MP4 link">
+<p class="note">YouTube, TikTok, Facebook, direct MP4 — အကုန်ရ</p>
+<button class="btn btn-p" id="bGo">✨ Recap ထုတ်မယ်</button>
+<div class="barwrap hidden" id="barW"><div class="barfill" id="bar"></div></div>
+<div class="prog" id="msg"></div>
+</div>
+
+<div class="card hidden" id="cRes">
+<h2>📌 အဓိကအချက်များ</h2>
+<ul class="bullets" id="bullets"></ul>
+<p class="note" id="meta"></p>
+<details>
+<summary class="note">Transcript အပြည့်အစုံ ကြည့်မယ်</summary>
+<p class="note" id="transcript"></p>
+</details>
+</div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+// TODO: Replace with your Render backend URL after deploy
+const API = 'https://video-recap-backend.onrender.com';
+
+$('bGo').addEventListener('click', async ()=>{
+  const url = $('inUrl').value.trim();
+  if(!url){ $('msg').textContent = 'Link ထည့်ပါ'; return; }
+  $('bGo').disabled = true;
+  $('cRes').classList.add('hidden');
+  $('barW').classList.remove('hidden');
+  $('bar').style.width = '10%';
+  $('msg').textContent = '⏬ Video download လုပ်နေတယ်… (မိနစ်အနည်းငယ် ကြာနိုင်တယ်)';
+  
+  // Fake progress
+  let p = 10;
+  const tick = setInterval(()=>{ p = Math.min(90, p+5); $('bar').style.width = p+'%'; }, 3000);
+  
+  try{
+    const r = await fetch(API + '/recap', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await r.json();
+    clearInterval(tick);
+    $('bar').style.width = '100%';
+    if(!r.ok) throw new Error(data.error || 'Server error');
+    
+    $('msg').textContent = 'ပြီးပြီ ✓';
+    const bl = $('bullets');
+    bl.innerHTML = '';
+    (data.bullets || []).forEach(b=>{
+      const li = document.createElement('li');
+      li.textContent = b;
+      bl.appendChild(li);
+    });
+    $('meta').textContent = `ဘာသာစကား: ${data.language} · စာတန်း ${data.segments} ခု`;
+    $('transcript').textContent = data.transcript || '';
+    $('cRes').classList.remove('hidden');
+  }catch(e){
+    clearInterval(tick);
+    $('msg').textContent = '❌ ' + (e.message || e);
+  }finally{
+    $('bGo').disabled = false;
+    setTimeout(()=>$('barW').classList.add('hidden'), 2000);
+  }
+});
+</script>
+</body></html>
