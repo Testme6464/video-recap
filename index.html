@@ -46,8 +46,15 @@ input[type=url],input[type=text]{width:100%;border:1px solid var(--line);border-
 <input type="file" id="inFile" accept="video/*,audio/*,.mp4,.m4a,.mov,.mp3,.wav">
 <p class="note">YouTube video ကို downloader app နဲ့ down → ဒီမှာ upload (အမြဲရတယ် ✓)</p>
 <button class="btn btn-p" id="bGoFile">✨ Recap ထုတ်မယ် (File)</button>
+<button class="btn" id="bGoVideo" style="margin-top:8px; background:#7c3aed;">🎬 Video Recap (Scenes နဲ့)</button>
 <div class="barwrap hidden" id="barW"><div class="barfill" id="bar"></div></div>
 <div class="prog" id="msg"></div>
+</div>
+
+<div class="card hidden" id="cVid">
+<h2>🎬 Recap Video</h2>
+<video id="vOut" controls style="width:100%; border-radius:8px;"></video>
+<p class="note" id="vMeta"></p>
 </div>
 
 <div class="card hidden" id="cRes">
@@ -70,7 +77,9 @@ const API = 'https://video-recap-backend.onrender.com';
 async function doRecap(url, file){
   $('bGo').disabled = true;
   $('bGoFile').disabled = true;
+  $('bGoVideo').disabled = true;
   $('cRes').classList.add('hidden');
+  $('cVid').classList.add('hidden');
   $('barW').classList.remove('hidden');
   $('bar').style.width = '10%';
   $('msg').textContent = file ? '⏫ Upload လုပ်နေတယ်…' : '⏬ Video download လုပ်နေတယ်… (မိနစ်အနည်းငယ် ကြာနိုင်တယ်)';
@@ -113,6 +122,47 @@ async function doRecap(url, file){
   }finally{
     $('bGo').disabled = false;
     $('bGoFile').disabled = false;
+    $('bGoVideo').disabled = false;
+    setTimeout(()=>$('barW').classList.add('hidden'), 2000);
+  }
+}
+
+async function doVideoRecap(file){
+  $('bGo').disabled = true;
+  $('bGoFile').disabled = true;
+  $('bGoVideo').disabled = true;
+  $('cRes').classList.add('hidden');
+  $('cVid').classList.add('hidden');
+  $('barW').classList.remove('hidden');
+  $('bar').style.width = '10%';
+  $('msg').textContent = '🎬 Video recap လုပ်နေတယ်… (မိနစ်အနည်းငယ် ကြာမယ်)';
+  
+  let p = 10;
+  const tick = setInterval(()=>{ p = Math.min(95, p+3); $('bar').style.width = p+'%'; }, 5000);
+  
+  try{
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(API + '/recap-video', {method: 'POST', body: fd});
+    clearInterval(tick);
+    if(!r.ok){
+      const data = await r.json();
+      throw new Error(data.error || 'Server error');
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    $('vOut').src = url;
+    $('vMeta').textContent = `အရွယ်: ${(blob.size/1024/1024).toFixed(1)} MB`;
+    $('cVid').classList.remove('hidden');
+    $('bar').style.width = '100%';
+    $('msg').textContent = 'ပြီးပြီ ✓';
+  }catch(e){
+    clearInterval(tick);
+    $('msg').textContent = '❌ ' + (e.message || e);
+  }finally{
+    $('bGo').disabled = false;
+    $('bGoFile').disabled = false;
+    $('bGoVideo').disabled = false;
     setTimeout(()=>$('barW').classList.add('hidden'), 2000);
   }
 }
@@ -127,6 +177,12 @@ $('bGoFile').addEventListener('click', ()=>{
   const f = $('inFile').files[0];
   if(!f){ $('msg').textContent = 'File ရွေးပါ'; return; }
   doRecap(null, f);
+});
+
+$('bGoVideo').addEventListener('click', ()=>{
+  const f = $('inFile').files[0];
+  if(!f){ $('msg').textContent = 'File ရွေးပါ'; return; }
+  doVideoRecap(f);
 });
 </script>
 </body></html>
