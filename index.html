@@ -38,6 +38,11 @@ input[type=url],input[type=text]{width:100%;border:1px solid var(--line);border-
 <h2>🔗 Video Link</h2>
 <input type="url" id="inUrl" placeholder="https://www.youtube.com/watch?v=... / TikTok / MP4 link">
 <p class="note">YouTube, TikTok, Facebook, direct MP4 — အကုန်ရ (YouTube က server block ထားလို့ မရရင် file upload သုံးပါ 👇)</p>
+<details style="margin:8px 0;">
+<summary style="cursor:pointer; font-size:14px;">🍪 YouTube cookie ထည့်မယ် (bot block ကျော်ဖို့)</summary>
+<input type="file" id="inCookies" accept=".txt" style="margin-top:8px;">
+<p class="note">Kiwi Browser + "Get cookies.txt" extension နဲ့ youtube.com က cookies ထုတ် → ဒီမှာ upload. ⚠️ Cookie = Google account access, risk ကိုယ်တိုင်ယူပါ</p>
+</details>
 <button class="btn btn-p" id="bGo">✨ Recap ထုတ်မယ် (Link)</button>
 </div>
 
@@ -89,10 +94,16 @@ async function doRecap(url, file){
   
   try{
     let r;
+    const ckFile = $('inCookies') && $('inCookies').files[0];
     if(file){
       const fd = new FormData();
       fd.append('file', file);
       r = await fetch(API + '/recap-file', {method: 'POST', body: fd});
+    }else if(ckFile){
+      const fd = new FormData();
+      fd.append('url', url);
+      fd.append('cookies', ckFile);
+      r = await fetch(API + '/recap', {method: 'POST', body: fd});
     }else{
       r = await fetch(API + '/recap', {
         method: 'POST',
